@@ -22,7 +22,7 @@ $subjects  	= $ARGV[1];
 $tree_input	= $ARGV[2];
 $out  		= $ARGV[3];
 
-unless($in =~ /\w/ || $out =~ /\w/){die "\nerror with file names\n"};
+unless($in =~ /\w/ || $out =~ /\w/ || $tree_input =~ /\w/ || $subjects =~ /\w/){die "\nerror with file names\n"};
 
 print "
 in:$in
@@ -30,11 +30,17 @@ out:$out
 ";
 
 
-open(IN2, $subjects) || die "\nerror 14.\n";
+open(IN2, $subjects) || die "\nerror 14, cant open file ($subjects)\n";
 while(my $line = <IN2>)
 	{
 	$line =~ s/\n//;$line =~ s/\r//; # print "line:$line\n";
-	if($line =~ /^(\S+)\t/){$subject{$1} = 1;$count_subjects++};
+	if($line =~ /^(\S+)\t/)
+		{
+		$subject{$1} = 1;$count_subjects++
+		}elsif($line =~ /^(\S\S+)/)
+		{
+		$subject{$1} = 1;$count_subjects++
+		};
 	};
 close IN2;
 
@@ -54,8 +60,14 @@ while(my $line = <IN>)	# classed_trait_table
 # Xylocopa_tranquabarorum	A	NA	A	D	NA	D	D	NA	D	A	NA	A	D	NA	D	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA
 
 
-	if( $linecount >= 1)
+	if( $linecount == 0)
 	{
+	print "trait table header:$line\n";
+	$line =~ s/\n//;$line =~ s/\r//;
+	$all_missing_line = $line;	$all_subject_line = $line;
+	$all_missing_line =~ s/\w+/-/g;	$all_subject_line =~ s/\w+/?/g;
+
+	}else{
 	$line =~ s/\n//;$line =~ s/\r//; # print "line:$line\n";
 	if($line =~ /^(\S+)\t/)
 		{
@@ -100,6 +112,7 @@ while(my $line = <IN2>)
 				print OUT1 "$species$line\n";
 				$line =~ s/	\?/	-/g;
 				print OUT2 "$species$line\n";
+				$tree_subjects++;
 				}else{
 				$line =~ s/	NA/	-/g;
 				print OUT1 "$species$line\n";
@@ -114,12 +127,21 @@ while(my $line = <IN2>)
 
 			if($subject{$species} == 1)
 				{
-				print OUT1 "$species	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?\n";
-				print OUT2 "$species	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-\n";
-				$subjects_with_no_records++;
+
+			#	print OUT1 "$species	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?	?\n";
+			#	print OUT2 "$species	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-\n";
+
+				print OUT1 "$species	$all_subject_line\n";
+				print OUT2 "$species	$all_missing_line\n";
+
+				$tree_subjects++;$subjects_with_no_records++;
 				}else{
-				print OUT1 "$species	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-\n";
-				print OUT2 "$species	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-\n";
+			#	print OUT1 "$species	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-\n";
+			#	print OUT2 "$species	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-\n";
+
+				print OUT1 "$species	$all_missing_line\n";
+				print OUT2 "$species	$all_missing_line\n";
+
 				};
 
 
@@ -130,7 +152,12 @@ while(my $line = <IN2>)
 
 print "
 tree_IDs_read:$tree_IDs_read
+ tree_subjects:$tree_subjects
  subjects_with_no_records:$subjects_with_no_records
+
+
+
+FIN.
 ";
 
 
