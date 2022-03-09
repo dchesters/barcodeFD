@@ -1,12 +1,63 @@
 
+#
+#
+#
+# R < summarize_traits.R --vanilla --slave
+#
+# 
+# input for state assignment script should be named 'listed_records' and have 4 columns, 
+# 1st column trait_name, 
+# 2nd column species name in format Genus_species
+# if the record is numeric, put the value in the 3rd column and NA in the 4th,
+# if the record is catagoric, put the value in the 4th column and NA in the 3rd.
+#
+#
+# 
+# 
+# CHANGE LOG
+# 
+# 2021-MAR-02: Plots another figure (using R) visualizing the permutation
+# 2021-JUN-27: If user inadvertently inputs rows without records, these are detected and removed automatically
+# 2021-DEC-27: Outputs table giving classes assigned to all numeric records which were input.
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+############################################################################################################################################
+
+# plot options:
+permutation_visualized_labelsize <- 1
+permutation_visualized_summary_state_x <- 80	# points to indicate state selected after permutation
+permutation_visualised_y1 <- -25 		# left hand side
+permutation_visualised_y2 <- 85 		# right hand side
+visualization_cex <- 1.2				# point size for states
+
+
+########################################
+
+
 
 print("");print(" r script summarize_traits.R");print("");
 
 t1 <- read.table("listed_records", sep = "\t", row.names = NULL, header = F, colClasses = c( "character","character","numeric","factor" )  )
 
 t1[  1 , ]
-#                   V1                  V2               V3
-# 1 un_Body_length_.mm. Ceratina_sutepensis 7.62256097560976
+#                   V1                  V2               V3    V4
+# 1 un_Body_length_.mm. Ceratina_sutepensis 7.62256097560976   NA
+
+# check if user inputted records with nothing in, remove if so:
+testlist <- is.na(t1[ , 3])&is.na(t1[ , 4]); rmrows <- (1:length(testlist))[testlist == TRUE]
+if(length(rmrows) >= 1)
+	{
+	t1 <- t1[ -rmrows , ]
+	}
 
 
 traits_names_column <- t1[ , 1]
@@ -25,14 +76,38 @@ species_trait_significant_states_0 <- 0; species_trait_significant_states_1 <- 0
 
 
 
-jpeg("traits_plotted.jpg"    , width = 3200 , height = 3200, res=200)
-par(mfrow=c(6,6));
+jpeg("traits_plotted.jpg"    , width = 1400 , height = 1400, res=200)
+par(mfrow=c(2,2));
+
+##################################################################################
+plot_y <- 0
+printstring <- c( "jpeg(\"permutation_visualised.jpg\" , width = 1000 , height = 15000) " );
+write(printstring, file = "Permutation_figure.txt" , ncolumns = length(printstring),  append = F, sep = "")
+printstring <- c( "
+permutation_visualized_labelsize <- " , permutation_visualized_labelsize,
+"
+permutation_visualized_summary_state_x <- " , permutation_visualized_summary_state_x,
+"
+permutation_visualised_y1 <- " , permutation_visualised_y1,
+"
+permutation_visualised_y2 <- " , permutation_visualised_y2,
+"
+visualization_cex <- " , visualization_cex, 
+"
+")
+write(printstring, file = "Permutation_figure.txt" , ncolumns = length(printstring),  append = T, sep = "")
+printstring <- "plot(NULL, xlim = c(permutation_visualised_y1,permutation_visualised_y2) ,ylim = c(0,4000), axes = F, xlab = NA, ylab = NA)"
+write(printstring, file = "Permutation_figure.txt" , ncolumns = length(printstring),  append = T, sep = "")
+##################################################################################
+
+system("rm numeric_records_classed"); # only for numeric traits, gives classes for all input records
 
 
 
 # autodetect whether catagorical and numerical traits
 for(current_trait_index in 1:length(unique_traits))
 	{
+	# current_trait_index <- 1
 	current_trait <- unique_traits[current_trait_index]; 
 	current_rows <-  (1:length(traits_names_column))[traits_names_column == current_trait] 
 	values_numeric_column <-  t1[ current_rows , 3] # nb column 3 has numerical assignments
@@ -51,16 +126,15 @@ current_rows <-  (1:length(traits_names_column))[traits_names_column == current_
 values <-  t1[ current_rows , 3] # nb column 3 has numerical assignments
 min(values) # 
 max(values) # 
-median(values) # 
+median(values);print(c("values", values))
 current_trait_quartiles <- as.numeric(quantile(values, prob=c(.25,.5,.75)))
 current_trait_quartiles
 # first one, U_BodyLength: 5.582900 7.476250 9.614025
 
 
 test_matrix <- matrix(NA, ncol=3, nrow=length(values))
-test_matrix[  , 1 ] <- t1[ current_rows , 2]
-test_matrix[  , 2 ] <- t1[ current_rows , 3]
-
+test_matrix[  , 1 ] <- t1[ current_rows , 2] # species
+test_matrix[  , 2 ] <- t1[ current_rows , 3] # numerical value
 
   # first quartile
 indices1 <- na.omit((1:length(values))[values <= current_trait_quartiles[1] ]); # indices.A <- intersect(current_rows , indices1)
@@ -74,6 +148,10 @@ test_matrix[ indices3 , 3 ] <- "C"
   # fourth
 indices4 <- na.omit((1:length(values))[values > current_trait_quartiles[3]  ])
 test_matrix[ indices4 , 3 ] <- "D"
+
+# 2021-12-27: for project on state assignment, need to have all trait records along with summarized states.
+print_matrix <- cbind(rep(current_trait, length.out=length(test_matrix[ , 1])) , test_matrix)
+write.table(print_matrix , file = "numeric_records_classed" ,  quote = F, sep = "\t", append = T, col.names = FALSE, row.names = FALSE )
 
 
 
@@ -99,7 +177,6 @@ for( j in 1:number_permutations )
 	}
 
 
-
 for( species_no in 1:length( unique_species ) )
 	{
 	current_species <- unique_species[species_no]; 
@@ -111,17 +188,44 @@ for( species_no in 1:length( unique_species ) )
 	current_species_states <- unique(trait_species_values)
 	if(length(current_rows2) >= 2){species_trait_with_multiple_records <- species_trait_with_multiple_records + 1}
 	species_trait_total <- species_trait_total + 1
+	
 
 	if( length( current_species_states ) >= 2 )
 		{
 		######################################################################################################
 		# multiple states for current trait/species
+		plot_y <- plot_y + 5; plot_x <- 0
 		printstring <- c("trait:" , current_trait, "NEW SPECIES with multiple states:" , current_species , "trait states:", trait_species_values)
 		print(printstring); write(printstring, file = "trait_Permutation_LOG.txt" , ncolumns = length(printstring),  append = T, sep = "\t")
+
+		
+		linetext <- paste(current_trait, current_species, sep = "  ")
+		printstring <- c( "text( -15 , " ,  plot_y , ", labels = \"" , linetext , "\" , col=\"black\" , cex= permutation_visualized_labelsize )" );
+		write(printstring, file = "Permutation_figure.txt" , ncolumns = length(printstring),  append = T, sep = "")
+
 		instances_multiple_states <- instances_multiple_states + 1
 		states_remaining <- "NA"; states_remaining_index <- 1;species_trait_significant_states <-0
 
+		for(each_record in trait_species_values)
+			{
+			each_record2 <- "grey";
+			if(each_record == "A"){each_record2 <- "red"}
+			if(each_record == "B"){each_record2 <- "blue"}
+			if(each_record == "C"){each_record2 <- "green"}
+			if(each_record == "D"){each_record2 <- "brown"}
+
+			# print(c("each_record" , each_record2))
+			printstring <- c( "points(", plot_x , " , " , plot_y , ", col=\"" , each_record2 , "\", pch=16, cex=" , visualization_cex , ")"  );
+			write(printstring, file = "Permutation_figure.txt" , ncolumns = length(printstring),  append = T, sep = "")
+
+			plot_x <- plot_x + 1
+			}
+
+
+		
+
 		# for current trait/species, test each state present:
+		plot_x2 <- permutation_visualized_summary_state_x
 		for (each_state in current_species_states)
 			{
 			no_current_state <- length( (1:length(trait_species_values))[trait_species_values == each_state] )
@@ -142,11 +246,25 @@ for( species_no in 1:length( unique_species ) )
 			printstring <- c("state:" , each_state , "state probability:" , permutation_prop)
 			print(printstring); write(printstring, file = "trait_Permutation_LOG.txt" , ncolumns = length(printstring),  append = T, sep = "\t")
 
+			each_record2 <- "grey";
+			if(each_state == "A"){each_record2 <- "red"}
+			if(each_state == "B"){each_record2 <- "blue"}
+			if(each_state == "C"){each_record2 <- "green"}
+			if(each_state == "D"){each_record2 <- "brown"}
+
 			if(permutation_prop >= 0.95)
 				{
 				states_remaining[states_remaining_index] <- each_state; states_remaining_index <- states_remaining_index + 1;
 				species_trait_significant_states <- species_trait_significant_states + 1
+
+				printstring <- c( "points(", plot_x2 , " , " , plot_y , ", col=\"" , each_record2 , "\", pch=16, cex=" , visualization_cex , ")"  );
+				write(printstring, file = "Permutation_figure.txt" , ncolumns = length(printstring),  append = T, sep = "")
+
+				plot_x2 <- plot_x2 + 1
 				}
+
+
+
 			}
 
 		if(species_trait_significant_states == 0){species_trait_significant_states_0 <- species_trait_significant_states_0 + 1};
@@ -235,9 +353,11 @@ barplot( table( droplevels(t1[ current_rows , 4] )) , main = plot_title, xlab = 
 
 dev.off()
 
+printstring <- "dev.off()"
+write(printstring, file = "Permutation_figure.txt" , ncolumns = length(printstring),  append = T, sep = "")
 
 
-write.table(new_trait_table , file = "classed_trait_table.2021" ,  quote = F, sep = "\t")
+write.table(new_trait_table , file = "classed_trait_table" ,  quote = F, sep = "\t", append = F)
 
 print(c("species_trait_total" , species_trait_total ))
 print(c("species_trait_with_multiple_records" , species_trait_with_multiple_records))
@@ -247,8 +367,7 @@ print(c("species_trait_significant_states_0" , species_trait_significant_states_
 print(c("species_trait_significant_states_1" , species_trait_significant_states_1))
 print(c("species_trait_significant_states_2" , species_trait_significant_states_2))
 print(c("species_trait_significant_states_3" , species_trait_significant_states_3))
-
-
+print("FIN.")
 
 
 
