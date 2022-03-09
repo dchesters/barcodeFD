@@ -1,8 +1,3 @@
-# barcodeFD
-Functional Diversity from DNA Barcodes
-
-###################################################################################################################################
-#
 #
 # 	barcodeFD
 #		Functional Diversity from DNA Barcodes
@@ -27,8 +22,6 @@ Functional Diversity from DNA Barcodes
 #	Citation:
 # 	Chesters, D. (2021). barcodeFD: Functional Diversity from DNA barcodes. Computer software available at github.com/dchesters/barcodeFD.
 #
-# 
-###################################################################################################################################
 #
 #
 # barcodeFD; Functional Diversity from DNA Barcodes
@@ -47,4 +40,6 @@ Functional Diversity from DNA Barcodes
 #  File of listed trait records
 #  File listing all species/OTU IDs
 #  Phylogeny comprising both references and subjects
+# 
+# SEE FILE: barcodeFD.sh
 
